@@ -1,4 +1,4 @@
-name: Manuelles Submodule Update
+name: Manuelles Submodule Update (mit PAT)
 
 # Ermöglicht das manuelle Auslösen des Workflows über die GitHub UI
 on: workflow_dispatch
@@ -7,30 +7,29 @@ jobs:
   update-submodules:
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout des Haupt-Repositories UND der Submodule
+      # 1. Checkout des Haupt-Repositories UND der Submodule mit PAT
       - name: Repository auschecken inkl. Submodule
         uses: actions/checkout@v4
         with:
           # Wichtig: 'recursive' holt auch die Submodule
           submodules: 'recursive'
-          # Token wird benötigt, um Änderungen zu pushen und PR zu erstellen
-          # Für private Submodule brauchst du eventuell ein PAT statt GITHUB_TOKEN
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # PAT verwenden für den Checkout (Zugriff auf private Submodule)
+          token: ${{ secrets.SUBMODULE_PAT }}
 
       # 2. Submodule auf den neuesten Commit des Remote-Branches aktualisieren
       - name: Submodule aktualisieren
         run: git submodule update --remote --recursive
 
-      # 3. Änderungen committen und Pull Request erstellen (wenn es Änderungen gab)
-      #    Diese Action vereinfacht das Erstellen eines PRs.
+      # 3. Änderungen committen und Pull Request erstellen (wenn es Änderungen gab) mit PAT
       - name: Pull Request für Submodule-Updates erstellen
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # PAT verwenden für Commit, Push und PR-Erstellung
+          token: ${{ secrets.SUBMODULE_PAT }}
           commit-message: "chore: Submodule aktualisieren"
-          committer: GitHub <noreply@github.com> # Optional: Commit-Autor anpassen
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com> # Optional: Commit-Autor anpassen
-          signoff: false # Optional: Signoff hinzufügen/entfernen
+          committer: GitHub <noreply@github.com> # Optional
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com> # Optional
+          signoff: false # Optional
           branch: update-submodules-${{ github.run_id }} # Eindeutiger Branch-Name
           delete-branch: true # Branch nach dem Mergen löschen
           title: 'chore: Submodule auf neuesten Stand bringen'
@@ -40,6 +39,6 @@ jobs:
           labels: |
             dependencies
             automated pr
-          assignees: ${{ github.actor }} # Optional: Weist den PR dir zu
-          # reviewers: user1,user2 # Optional: Reviewer hinzufügen
-          # team-reviewers: team1,team2 # Optional: Team-Reviewer hinzufügen
+          assignees: ${{ github.actor }} # Optional
+          # reviewers: user1,user2 # Optional
+          # team-reviewers: team1,team2 # Optional
