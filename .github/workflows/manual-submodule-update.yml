@@ -1,0 +1,45 @@
+name: Manuelles Submodule Update
+
+# Ermöglicht das manuelle Auslösen des Workflows über die GitHub UI
+on: workflow_dispatch
+
+jobs:
+  update-submodules:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout des Haupt-Repositories UND der Submodule
+      - name: Repository auschecken inkl. Submodule
+        uses: actions/checkout@v4
+        with:
+          # Wichtig: 'recursive' holt auch die Submodule
+          submodules: 'recursive'
+          # Token wird benötigt, um Änderungen zu pushen und PR zu erstellen
+          # Für private Submodule brauchst du eventuell ein PAT statt GITHUB_TOKEN
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Submodule auf den neuesten Commit des Remote-Branches aktualisieren
+      - name: Submodule aktualisieren
+        run: git submodule update --remote --recursive
+
+      # 3. Änderungen committen und Pull Request erstellen (wenn es Änderungen gab)
+      #    Diese Action vereinfacht das Erstellen eines PRs.
+      - name: Pull Request für Submodule-Updates erstellen
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: Submodule aktualisieren"
+          committer: GitHub <noreply@github.com> # Optional: Commit-Autor anpassen
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com> # Optional: Commit-Autor anpassen
+          signoff: false # Optional: Signoff hinzufügen/entfernen
+          branch: update-submodules-${{ github.run_id }} # Eindeutiger Branch-Name
+          delete-branch: true # Branch nach dem Mergen löschen
+          title: 'chore: Submodule auf neuesten Stand bringen'
+          body: |
+            Dieser PR aktualisiert die Git-Submodule auf ihre neuesten Commits.
+            Automatisch ausgelöst durch manuellen Workflow Run #${{ github.run_id }}.
+          labels: |
+            dependencies
+            automated pr
+          assignees: ${{ github.actor }} # Optional: Weist den PR dir zu
+          # reviewers: user1,user2 # Optional: Reviewer hinzufügen
+          # team-reviewers: team1,team2 # Optional: Team-Reviewer hinzufügen
